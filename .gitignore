@@ -1,0 +1,6 @@
+node_modules
+assets
+.env
+src/config/database.json
+src/helpers/wrapMail
+tes.js
