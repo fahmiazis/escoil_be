@@ -16,9 +16,15 @@ app.use(morgan('dev'))
 app.use(cors())
 
 const userRoute = require('./routes/user')
+const roleRoute = require('./routes/role')
+const classesRoute = require('./routes/classes')
+const schoolRoute = require('./routes/school')
 const authRoute = require('./routes/auth')
 
-app.use('/user', userRoute)
+app.use('/user', authMiddleware, userRoute)
+app.use('/role', authMiddleware, roleRoute)
+app.use('/class', authMiddleware, classesRoute)
+app.use('/school', authMiddleware, schoolRoute)
 app.use('/auth', authRoute)
 
 app.use('/uploads', express.static('assets/uploads'))

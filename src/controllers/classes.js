@@ -21,7 +21,7 @@ module.exports = {
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (level === 1 || level === 100) {
+        if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const findClass = await classes.findOne({
             where: {
               [Op.and]: [

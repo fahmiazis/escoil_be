@@ -22,7 +22,7 @@ module.exports = {
           where: {
             [Op.or]: [
               { username: results.username },
-              { nik: results.nik }
+              { nik: results.username }
             ]
           }
         })

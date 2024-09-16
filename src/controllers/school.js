@@ -19,7 +19,7 @@ module.exports = {
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (level === 1 || level === 100) {
+        if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const findSchool = await school.findOne({
             where: {
               [Op.and]: [
@@ -44,7 +44,7 @@ module.exports = {
             }
           }
         } else {
-          return response(res, 'You do not have access to create users', {}, 404, false)
+          return response(res, 'You do not have access to create school', {}, 404, false)
         }
       }
     } catch (error) {
@@ -120,9 +120,9 @@ module.exports = {
         }
       })
       if (result) {
-        return response(res, `success get data class ${id}`, { result })
+        return response(res, `success get data school ${id}`, { result })
       } else {
-        return response(res, 'fail to get data class', {}, 400, false)
+        return response(res, 'fail to get data school', {}, 400, false)
       }
     } catch (error) {
       return response(res, error.message, {}, 500, false)

@@ -31,13 +31,13 @@ module.exports = {
         telp: joi.number().allow(''),
         email: joi.string().email(),
         kd_role: joi.number().required(),
-        password: joi.string().required()
+        password: joi.string().min(8).required()
       })
       const { value: results, error } = schema.validate(req.body)
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (level === 1 || level === 100) {
+        if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const findUser = await user.findOne({
             where: {
               [Op.or]: [
@@ -86,28 +86,37 @@ module.exports = {
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        const findUser = await user.findOne({
+        const findData = await user.findOne({
           where: {
-            [Op.or]: [
-              { username: results.username },
-              { nik: results.nik }
-            ],
-            [Op.not]: { kd_user: results.kd_user }
+            kd_user: results.kd_user
           }
         })
-        if (findUser) {
-          return response(res, `${findUser.username === results.username ? 'username' : 'nik'} already use`, {}, 404, false)
-        } else {
-          const data = {
-            ...results,
-            history: `; update user at ${moment().format('DD/MM/YYYY h:mm:ss a')}`
-          }
-          const result = await user.create(data)
-          if (result) {
-            return response(res, 'Add User succesfully', { result })
+        if (findData) {
+          const findUser = await user.findOne({
+            where: {
+              [Op.or]: [
+                { username: results.username },
+                { nik: results.nik }
+              ],
+              [Op.not]: { kd_user: results.kd_user }
+            }
+          })
+          if (findUser) {
+            return response(res, `${findUser.username === results.username ? 'username' : 'nik'} already use`, {}, 404, false)
           } else {
-            return response(res, 'Fail to create user', {}, 400, false)
+            const data = {
+              ...results,
+              history: `; update user at ${moment().format('DD/MM/YYYY h:mm:ss a')}`
+            }
+            const result = await findData.update(data)
+            if (result) {
+              return response(res, 'update user succesfully', { result })
+            } else {
+              return response(res, 'Fail to update user', {}, 400, false)
+            }
           }
+        } else {
+          return response(res, 'user not found', {}, 400, false)
         }
       }
     } catch (error) {
@@ -115,7 +124,7 @@ module.exports = {
     }
   },
   uploadImage: async (req, res) => {
-    const id = req.params.id
+    const id = req.body.kd_user
     uploadHelper(req, res, async function (err) {
       try {
         if (err instanceof multer.MulterError) {
@@ -150,8 +159,8 @@ module.exports = {
   deleteUser: async (req, res) => {
     try {
       const level = req.user.level
-      const id = req.params.id
-      if (level === 1) {
+      const id = req.body.kd_user
+      if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
         const result = await user.findOne({
           where: {
             kd_user: id,
@@ -227,7 +236,7 @@ module.exports = {
   },
   getDetailUser: async (req, res) => {
     try {
-      const id = req.params.id
+      const id = req.body.kd_user
       const result = await user.findOne({
         where: {
           kd_user: id
@@ -243,155 +252,165 @@ module.exports = {
     }
   },
   uploadMasterUser: async (req, res) => {
-    // const level = req.user.level
-    // if (level === 1) {
-    uploadMaster(req, res, async function (err) {
-      try {
-        if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_UNEXPECTED_FILE' && req.files.length === 0) {
-            console.log(err.code === 'LIMIT_UNEXPECTED_FILE' && req.files.length > 0)
-            return response(res, 'fieldname doesnt match', {}, 500, false)
+    const level = req.user.level
+    if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
+      uploadMaster(req, res, async function (err) {
+        try {
+          if (err instanceof multer.MulterError) {
+            if (err.code === 'LIMIT_UNEXPECTED_FILE' && req.files.length === 0) {
+              console.log(err.code === 'LIMIT_UNEXPECTED_FILE' && req.files.length > 0)
+              return response(res, 'fieldname doesnt match', {}, 500, false)
+            }
+            return response(res, err.message, {}, 500, false)
+          } else if (err) {
+            return response(res, err.message, {}, 401, false)
           }
-          return response(res, err.message, {}, 500, false)
-        } else if (err) {
-          return response(res, err.message, {}, 401, false)
-        }
-        const dokumen = `assets/masters/${req.files[0].filename}`
-        const rows = await readXlsxFile(dokumen)
-        const count = []
-        const cek = ['NAME', 'NIK', 'EMAIL', 'NO.TELP', 'ROLE', 'PASSWORD']
-        const valid = rows[0]
-        for (let i = 0; i < cek.length; i++) {
-          if (valid[i] === cek[i]) {
-            count.push(1)
-          }
-        }
-        if (count.length === cek.length) {
-          const plant = []
-          const userName = []
-          const cek = []
-          for (let i = 1; i < rows.length; i++) {
-            const a = rows[i]
-            userName.push(`NIK ${a[1]} `)
-            cek.push(`${a[1]}`)
-          }
-          const object = {}
-          const result = []
-          const obj = {}
-
-          userName.forEach(item => {
-            if (!obj[item]) { obj[item] = 0 }
-            obj[item] += 1
-          })
-
-          for (const prop in obj) {
-            if (obj[prop] >= 2) {
-              result.push(prop)
+          const dokumen = `assets/masters/${req.files[0].filename}`
+          const rows = await readXlsxFile(dokumen)
+          const count = []
+          const cek = ['NAME', 'NIK', 'EMAIL', 'NO.TELP', 'ROLE', 'PASSWORD']
+          const valid = rows[0]
+          for (let i = 0; i < cek.length; i++) {
+            if (valid[i] === cek[i]) {
+              count.push(1)
             }
           }
-
-          plant.forEach(item => {
-            if (!object[item]) { object[item] = 0 }
-            object[item] += 1
-          })
-
-          for (const prop in object) {
-            if (object[prop] >= 2) {
-              result.push(prop)
-            }
-          }
-          if (result.length > 0) {
-            return response(res, 'there is duplication in your file master', { result }, 404, false)
-          } else {
-            rows.shift()
-            const create = []
-            for (let i = 0; i < rows.length; i++) {
-              const noun = []
-              const process = rows[i]
-              for (let j = 0; j < process.length + 1; j++) {
-                if (j === 5) {
-                  let str = process[j]
-                  str = await bcrypt.hash(str, await bcrypt.genSalt())
-                  noun.push(str)
-                } else if (j === 6) {
-                  let str = process[1]
-                  str = await bcrypt.hash(str, await bcrypt.genSalt())
-                  noun.push(str)
-                } else {
-                  noun.push(process[j])
-                }
+          if (count.length === cek.length) {
+            const plant = []
+            const userName = []
+            const cek = []
+            const cekNik = []
+            for (let i = 1; i < rows.length; i++) {
+              const a = rows[i]
+              userName.push(`NIK ${a[1]} `)
+              cek.push(`${a[1]}`)
+              if (a[1].toString().length < 15 && parseInt(a[4].split('-')[0]) !== 1) {
+                cekNik.push(`NIK '${a[1]}' pada baris ${i} tidak valid`)
               }
-              create.push(noun)
             }
-            if (create.length > 0) {
-              const arr = []
-              for (let i = 0; i < create.length; i++) {
-                const dataUser = create[i]
-                const data = {
-                  username: dataUser[1],
-                  fullname: dataUser[0],
-                  nik: dataUser[1],
-                  email: dataUser[2],
-                  telp: dataUser[3],
-                  kd_role: dataUser[4].split('-')[0],
-                  kd_user: dataUser[6],
-                  password: dataUser[5],
-                  history: `create user at ${moment().format('DD/MM/YYYY h:mm:ss a')}`
-                }
-                const findUser = await user.findOne({
-                  where: {
-                    [Op.or]: [
-                      { username: dataUser[1] },
-                      { nik: dataUser[1] }
-                    ]
-                  }
-                })
-                if (findUser) {
-                  arr.push(findUser)
-                } else {
-                  const createUser = await user.create(data)
-                  if (createUser) {
-                    arr.push(createUser)
-                  }
-                }
+            const object = {}
+            const result = []
+            const obj = {}
+
+            userName.forEach(item => {
+              if (!obj[item]) { obj[item] = 0 }
+              obj[item] += 1
+            })
+
+            for (const prop in obj) {
+              if (obj[prop] >= 2) {
+                result.push(prop)
               }
-              if (arr.length) {
-                fs.unlink(dokumen, function (err) {
-                  if (err) {
-                    return response(res, 'successfully upload file master', { err })
+            }
+
+            plant.forEach(item => {
+              if (!object[item]) { object[item] = 0 }
+              object[item] += 1
+            })
+
+            for (const prop in object) {
+              if (object[prop] >= 2) {
+                result.push(prop)
+              }
+            }
+            if (result.length > 0) {
+              fs.unlink(dokumen, function (err) {
+                return response(res, 'there is duplication in your file master', { result }, 404, false)
+              })
+            } else if (cekNik.length > 0) {
+              fs.unlink(dokumen, function (err) {
+                return response(res, 'Terdapat kesalahan pengisian', { result: cekNik }, 404, false)
+              })
+            } else {
+              rows.shift()
+              const create = []
+              for (let i = 0; i < rows.length; i++) {
+                const noun = []
+                const process = rows[i]
+                for (let j = 0; j < process.length + 1; j++) {
+                  if (j === 5) {
+                    let str = process[j]
+                    str = await bcrypt.hash(str, await bcrypt.genSalt())
+                    noun.push(str)
+                  } else if (j === 6) {
+                    let str = process[1].toString()
+                    str = await bcrypt.hash(str, await bcrypt.genSalt())
+                    noun.push(str)
                   } else {
-                    return response(res, 'successfully upload file master')
+                    noun.push(process[j])
                   }
-                })
+                }
+                create.push(noun)
+              }
+              if (create.length > 0) {
+                const arr = []
+                for (let i = 0; i < create.length; i++) {
+                  const dataUser = create[i]
+                  const data = {
+                    username: dataUser[1],
+                    fullname: dataUser[0],
+                    nik: dataUser[1],
+                    email: dataUser[2],
+                    telp: dataUser[3],
+                    kd_role: dataUser[4].split('-')[0],
+                    kd_user: dataUser[6],
+                    password: dataUser[5],
+                    history: `create user at ${moment().format('DD/MM/YYYY h:mm:ss a')}`
+                  }
+                  const findUser = await user.findOne({
+                    where: {
+                      [Op.or]: [
+                        { username: dataUser[1] },
+                        { nik: dataUser[1] }
+                      ]
+                    }
+                  })
+                  if (findUser) {
+                    arr.push(findUser)
+                  } else {
+                    const createUser = await user.create(data)
+                    if (createUser) {
+                      arr.push(createUser)
+                    }
+                  }
+                }
+                if (arr.length) {
+                  fs.unlink(dokumen, function (err) {
+                    if (err) {
+                      return response(res, 'successfully upload file master user', { err })
+                    } else {
+                      return response(res, 'successfully upload file master user', { result: arr })
+                    }
+                  })
+                } else {
+                  fs.unlink(dokumen, function (err) {
+                    if (err) {
+                      return response(res, 'failed to upload file', { err }, 404, false)
+                    } else {
+                      return response(res, 'failed to upload file', {}, 404, false)
+                    }
+                  })
+                }
               } else {
-                fs.unlink(dokumen, function (err) {
-                  if (err) {
-                    return response(res, 'failed to upload file', { err }, 404, false)
-                  } else {
-                    return response(res, 'failed to upload file', {}, 404, false)
-                  }
-                })
+                return response(res, 'failed to upload file', {}, 404, false)
               }
-            } else {
-              return response(res, 'failed to upload file', {}, 404, false)
             }
+          } else {
+            fs.unlink(dokumen, function (err) {
+              if (err) {
+                return response(res, 'Failed to upload master file, please use the template provided', { err }, 400, false)
+              } else {
+                return response(res, 'Failed to upload master file, please use the template provided', {}, 400, false)
+              }
+            })
           }
-        } else {
-          fs.unlink(dokumen, function (err) {
-            if (err) {
-              return response(res, 'Failed to upload master file, please use the template provided', { err }, 400, false)
-            } else {
-              return response(res, 'Failed to upload master file, please use the template provided', {}, 400, false)
-            }
-          })
+        } catch (error) {
+          return response(res, error.message, {}, 500, false)
         }
-      } catch (error) {
-        return response(res, error.message, {}, 500, false)
-      }
-    })
-    // } else {
-    //   return response(res, "You're not super administrator", {}, 404, false)
-    // }
+      })
+    } else {
+      return response(res, "You're not super administrator", {}, 404, false)
+    }
   },
   exportSqlUser: async (req, res) => {
     try {
@@ -524,7 +543,7 @@ module.exports = {
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (level === 1) {
+        if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const result = await role.findAll({
             where: {
               [Op.or]: [
@@ -568,7 +587,7 @@ module.exports = {
       const id = req.params.id
       const result = await role.findByPk(id)
       if (result) {
-        return response(res, `Profile of role with id ${id}`, { result })
+        return response(res, `Role of with id ${id}`, { result })
       } else {
         return response(res, 'fail to get role', {}, 400, false)
       }
@@ -589,7 +608,7 @@ module.exports = {
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (level === 1) {
+        if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const result = await role.findAll({
             where: {
               [Op.or]: [
