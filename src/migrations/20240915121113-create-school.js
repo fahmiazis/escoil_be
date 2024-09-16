@@ -1,28 +1,31 @@
-'use strict'
+'use strict';
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('roles', {
+  async up(queryInterface, Sequelize) {
+    await queryInterface.createTable('schools', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      kd_role: {
+      nm_school: {
         type: Sequelize.STRING
       },
-      nm_role: {
+      kd_school: {
         type: Sequelize.STRING
       },
-      type: {
+      address: {
         type: Sequelize.STRING
       },
-      history: {
-        type: Sequelize.TEXT
+      kd_akreditas: {
+        type: Sequelize.STRING
       },
       status: {
         type: Sequelize.INTEGER
+      },
+      history: {
+        type: Sequelize.TEXT
       },
       createdAt: {
         allowNull: false,
@@ -32,9 +35,9 @@ module.exports = {
         allowNull: false,
         type: Sequelize.DATE
       }
-    })
+    });
   },
-  async down (queryInterface, Sequelize) {
-    await queryInterface.dropTable('roles')
+  async down(queryInterface, Sequelize) {
+    await queryInterface.dropTable('schools');
   }
-}
+};

@@ -3,7 +3,7 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const response = require('./helpers/response')
 const morgan = require('morgan')
-const authMiddleware = require('./middlewares/auth')
+const authMiddleware = require('./middlewares/auth') // eslint-disable-line
 
 const app = express()
 const server = require('http').createServer(app)
@@ -15,14 +15,22 @@ app.use(bodyParser.urlencoded({ extended: false }))
 app.use(morgan('dev'))
 app.use(cors())
 
-// const userRoute = require('./routes/user')
+const userRoute = require('./routes/user')
 const authRoute = require('./routes/auth')
 
-// app.use('/user', authMiddleware, userRoute)
+app.use('/user', userRoute)
 app.use('/auth', authRoute)
+
+app.use('/uploads', express.static('assets/uploads'))
+app.use('/masters', express.static('assets/masters'))
+app.use('/documents', express.static('assets/documents'))
 
 app.get('*', (req, res) => {
   response(res, 'Error route not found', {}, 404, false)
+})
+
+app.get('/', (req, res) => {
+  response(res, 'Backend is Running')
 })
 
 server.listen(APP_PORT, () => {

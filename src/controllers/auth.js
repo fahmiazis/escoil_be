@@ -2,8 +2,8 @@ const joi = require('joi')
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcryptjs')
 const response = require('../helpers/response')
-const { user, role } = require('../models')
-const { Op } = require('sequelize')
+const { user } = require('../models') // eslint-disable-line
+const { Op } = require('sequelize') // eslint-disable-line
 
 const { APP_KEY } = process.env
 
@@ -12,80 +12,33 @@ module.exports = {
     try {
       const schema = joi.object({
         username: joi.string().required(),
-        password: joi.string().required(),
-        cost_center: joi.string().allow('')
+        password: joi.string().required()
       })
       const { value: results, error } = schema.validate(req.body)
       if (error) {
         return response(res, 'Error', { error: error.message }, 401, false)
       } else {
-        if (results.username === 'p000' || results.username === 'P000') {
-          const result = await user.findOne({
-            where: {
-              username: { [Op.like]: `%${results.username}%` }
-            },
-            include: [{ model: role, as: 'role' }]
+        const result = await user.findOne({
+          where: {
+            [Op.or]: [
+              { username: results.username },
+              { nik: results.nik }
+            ]
           }
-          )
-          if (result) {
-            const { id, kode_plant, level, username, fullname, email, roleId, userId } = result // eslint-disable-line
-            bcrypt.compare(results.password, result.password, function (_err, result) {
-              if (result) {
-                jwt.sign({ id: id, name: username, fullname: fullname, role: roleId, userId: userId }, `${APP_KEY}`, (_err, token) => {
-                  return response(res, 'login success', { user: { result }, Token: `${token}` })
-                })
-              } else {
-                return response(res, 'Wrong password', {}, 400, false)
-              }
-            })
-          } else {
-            return response(res, 'username is not registered', {}, 400, false)
-          }
-        } else {
-          const result = await user.findOne({ where: { username: results.username } })
-          if (result) {
-            const { id, kode_plant, level, username, fullname, email, roleId } = result // eslint-disable-line
-            bcrypt.compare(results.password, result.password, function (_err, result) {
-              if (result) {
-                jwt.sign({ id: id, level: level, kode: kode_plant, name: username, fullname: fullname, role: roleId }, `${APP_KEY}`, (_err, token) => {
-                  return response(res, 'login success', { user: { id, kode_plant, level, username, fullname, email, role: roleId }, Token: `${token}` })
-                })
-              } else {
-                return response(res, 'Wrong password', {}, 400, false)
-              }
-            })
-          } else {
-            return response(res, 'username is not registered', {}, 400, false)
-          }
-        }
-      }
-    } catch (error) {
-      return response(res, error.message, {}, 500, false)
-    }
-  },
-  register: async (req, res) => {
-    try {
-      const schema = joi.object({
-        username: joi.string().required(),
-        password: joi.string().required(),
-        roleId: joi.number().required(),
-        email: joi.string().email().required()
-      })
-      const { value: results, error } = schema.validate(req.body)
-      if (error) {
-        return response(res, 'Error', { error: error.message }, 401, false)
-      } else {
-        const result = await user.findOne({ where: { username: results.username } })
+        })
         if (result) {
-          return response(res, 'username already use', {}, 404, false)
+          const { kd_role, username, fullname, email, nik, telp, kd_user } = result // eslint-disable-line
+          bcrypt.compare(results.password, result.password, function (_err, result) {
+            if (result) {
+              jwt.sign({ level: kd_role, name: username, fullname: fullname, kduser: kd_role }, `${APP_KEY}`, (_err, token) => {
+                return response(res, 'login success', { user: { username, fullname, email, nik, telp, role: kd_role, kd_user }, Token: `${token}` })
+              })
+            } else {
+              return response(res, 'Wrong password', {}, 400, false)
+            }
+          })
         } else {
-          results.password = await bcrypt.hash(results.password, await bcrypt.genSalt())
-          const result = await user.create(results)
-          if (result) {
-            return response(res, 'Add User succesfully', { result })
-          } else {
-            return response(res, 'Fail to create user', {}, 400, false)
-          }
+          return response(res, 'user is not registered', {}, 400, false)
         }
       }
     } catch (error) {

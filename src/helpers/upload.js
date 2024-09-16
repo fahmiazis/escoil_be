@@ -5,7 +5,7 @@ const storage = multer.diskStorage({
     if (!file) {
       return cb(new Error('document cant be null'), false)
     }
-    cb(null, 'assets/documents')
+    cb(null, 'assets/uploads')
   },
   filename: (req, file, cb) => {
     const ext = file.originalname.split('.')[file.originalname.split('.').length - 1]
