@@ -1,6 +1,6 @@
 const joi = require('joi')
 const response = require('../helpers/response')
-const { classes, user } = require('../models')
+const { classes, user, school } = require('../models')
 const { pagination } = require('../helpers/pagination')
 const moment = require('moment')
 const { Op } = require('sequelize')
@@ -15,7 +15,8 @@ module.exports = {
         stage: joi.number().required(),
         type: joi.number().required(),
         kd_school: joi.string().required(),
-        kd_user: joi.string().required()
+        date_from: joi.date().required(),
+        date_to: joi.date().required()
       })
       const { value: results, error } = schema.validate(req.body)
       if (error) {
@@ -26,7 +27,6 @@ module.exports = {
             where: {
               [Op.and]: [
                 { nm_class: results.nm_class },
-                { kd_user: results.kd_user },
                 { kd_school: results.kd_school }
               ]
             }
@@ -34,10 +34,12 @@ module.exports = {
           if (findClass) {
             return response(res, 'user telah terdaftar', {}, 404, false)
           } else {
-            const month = parseInt(moment().format('MM'))
-            const yearOne = moment().format('YYYY')
-            const yearTwo = month > 6 ? moment().add(1, 'year').format('YYYY') : moment().subtract(1, 'year').format('YYYY')
-            const resYear = month > 6 ? `${yearOne}${yearTwo}` : `${yearTwo}${yearOne}`
+            const yearOne = moment(results.date_from).format('YYYY')
+            const yearTwo = moment(results.date_to).format('YYYY')
+            const resYear = yearTwo > yearOne ? `${yearOne}${yearTwo}` : `${yearTwo}${yearOne}`
+          if (yearTwo > yearOne) {
+            return response(res, 'pastikan input date_from dan date_to dengan benar', {}, 404, false)
+          } else {
             const data = {
               ...results,
               history: `create class user at ${moment().format('DD/MM/YYYY h:mm:ss a')}`,
@@ -51,6 +53,7 @@ module.exports = {
             } else {
               return response(res, 'Fail to create class user', {}, 400, false)
             }
+          }
           }
         } else {
           return response(res, 'You do not have access to create class users', {}, 404, false)
@@ -73,7 +76,7 @@ module.exports = {
       if (typeof sort === 'object') {
         sortValue = Object.values(sort)[0]
       } else {
-        sortValue = sort || 'kd_class'
+        sortValue = sort || 'createdAt'
       }
       if (!limit) {
         limit = 10

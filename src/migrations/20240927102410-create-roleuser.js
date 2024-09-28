@@ -2,36 +2,21 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('classes', {
+    await queryInterface.createTable('roleusers', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
-      nm_class: {
-        type: Sequelize.STRING
-      },
-      stage: {
+      kd_role: {
         type: Sequelize.INTEGER
       },
-      type: {
-        type: Sequelize.INTEGER
-      },
-      kd_class: {
-        type: Sequelize.STRING
-      },
-      kd_school: {
-        type: Sequelize.STRING
-      },
-      sch_year: {
+      kd_user: {
         type: Sequelize.STRING
       },
       status: {
         type: Sequelize.INTEGER
-      },
-      history: {
-        type: Sequelize.TEXT
       },
       createdAt: {
         allowNull: false,
@@ -44,6 +29,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('classes');
+    await queryInterface.dropTable('roleusers');
   }
 };
