@@ -21,15 +21,15 @@ const classesRoute = require('./routes/classes')
 const schoolRoute = require('./routes/school')
 const authRoute = require('./routes/auth')
 
-app.use('/escoil/user', authMiddleware, userRoute)
-app.use('/escoil/role', authMiddleware, roleRoute)
-app.use('/escoil/class', authMiddleware, classesRoute)
-app.use('/escoil/school', authMiddleware, schoolRoute)
-app.use('/escoil/auth', authRoute)
+app.use('/user', authMiddleware, userRoute)
+app.use('/role', authMiddleware, roleRoute)
+app.use('/class', authMiddleware, classesRoute)
+app.use('/school', authMiddleware, schoolRoute)
+app.use('/auth', authRoute)
 
-app.use('/escoil/uploads', express.static('assets/uploads'))
-app.use('/escoil/masters', express.static('assets/masters'))
-app.use('/escoil/documents', express.static('assets/documents'))
+app.use('/uploads', express.static('assets/uploads'))
+app.use('/masters', express.static('assets/masters'))
+app.use('/documents', express.static('assets/documents'))
 
 app.get('*', (req, res) => {
   response(res, 'Error route not found', {}, 404, false)
