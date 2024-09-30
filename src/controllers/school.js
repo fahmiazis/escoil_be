@@ -22,7 +22,7 @@ module.exports = {
         if (level.split(',').find((item) => parseInt(item) === 1 || parseInt(item) === 100)) {
           const findSchool = await school.findOne({
             where: {
-              [Op.and]: [
+              [Op.or]: [
                 { nm_school: results.nm_school },
                 { kd_school: results.kd_school }
               ]
